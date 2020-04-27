@@ -1,0 +1,78 @@
+apply plugin: "kotlin"
+apply plugin: "application"
+apply plugin: "com.github.johnrengelman.shadow"
+
+mainClassName = "Main"
+
+buildscript {
+    ext {
+        kotlin_version = "1.3.71"
+    }
+
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven { url "https://mvnrepository.com/artifact/io.github.microutils/kotlin-logging" }
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath group: "com.github.jengelman.gradle.plugins", name: "shadow", version: "5.2.0"
+    }
+}
+
+sourceSets {
+    main.kotlin.srcDirs += "src"
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven { url "https://mvnrepository.com/artifact/io.github.microutils/kotlin-logging" }
+}
+
+dependencies {
+    /** Bibliotecas básicas para ter o auto-complete do kotlin e para conseguir compilar. */
+    compile group: "org.jetbrains.kotlin", name: "kotlin-stdlib", version: "$kotlin_version"
+    compile group: "org.jetbrains.kotlin", name: "kotlin-reflect", version: "$kotlin_version"
+    /** Bibliotecas para que o logger do kotlin funcione. */
+    compile group: "io.github.microutils", name: "kotlin-logging", version: "1.4.4"
+    compile group: "log4j", name: "log4j", version: "1.2.17"
+    compile group: "com.googlecode.log4jdbc", name: "log4jdbc", version: "1.2"
+    compile group: "org.slf4j", name: "slf4j-api", version: "1.7.25"
+    compile group: "org.slf4j", name: "slf4j-log4j12", version: "1.7.25"
+    /** Biblioteca do SQL server. */
+    compile group: "com.microsoft.sqlserver", name: "sqljdbc4", version: "4.0"
+    compile group: "org.apache.commons", name: "commons-lang3", version: "3.10"
+    compile group: "com.ibm.icu", name: "icu4j", version: "3.4.4"
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": mainClassName
+    }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+task compilar(type: Copy, dependsOn: build) {
+    from "./resources"
+    include "*.properties"
+    into { "./build/libs" }
+
+    doLast {
+        FileTree tree = fileTree(dir: "./build/libs")
+        tree.each { File file ->
+            (file.getName() == rootProject.name + ".jar") ? file.delete() : ""
+        }
+    }
+
+    doLast {
+        delete "./out"
+        copy {
+            from "./build/libs"
+            into { "./out" }
+        }
+    }
+}
+
+build.finalizedBy(compilar)
